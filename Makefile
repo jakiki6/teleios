@@ -1,21 +1,13 @@
-run: os.img
-	qemu-system-i386 -hda $< --enable-kvm -D log.txt -d cpu_reset,int
+all:
+	make -C boot
+	make -C progs
 
-os.img: loader.bin stage2.bin kernel.bin
-	qemu-img create $@ 64M
-
-	echfs-utils $@ quick-format 512
-
-	echfs-utils $@ import kernel.bin kernel.bin
-
-	head -c 4 loader.bin | dd of=$@ conv=notrunc
-	dd if=loader.bin of=$@ conv=notrunc bs=1 seek=58 skip=58
-	dd if=stage2.bin of=$@ conv=notrunc bs=1 seek=512
-
-%.bin: %.asm
-	nasm -f bin -o $@ $<
+	qemu-system-x86_64 -hda os.img -enable-kvm -m 512M -D log.txt -d cpu_reset,int
 
 clean:
-	rm log.txt os.img *.o *.bin 2> /dev/null || true
+	make -C boot clean
+	make -C progs clean
 
-.PHONY: run clean
+	rm os.img log.txt 2> /dev/null || true
+
+.PHONY: all clean
