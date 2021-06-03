@@ -138,6 +138,10 @@ stage2:
 	and al, 0x7f
 	out 0x70, al
 
+	in al, 0x92		; enable A20 line
+	or al, 0x02
+	out 0x92, al
+
 	cli
 
 	lgdt [gdt_desc]
@@ -145,6 +149,9 @@ stage2:
 	mov eax, cr0
 	or al, 1
 	mov cr0, eax
+
+	mov ax, 0x10
+	mov ds, ax
 
 	jmp 0x08:.pmode
 
@@ -166,7 +173,7 @@ stage2:
 
 	mov esp, 0x20000
 
-	push 0
+	push 2
 	popfd
 
 	jmp 0x10000
@@ -272,7 +279,17 @@ gdt_desc:
 	dw gdt_entries.end - gdt_entries - 1
 	dd gdt_entries
 gdt_entries:
-	dq 0							; unused
-	db 0xff, 0xff, 0, 0, 0, 10011010b, 10001111b, 0		; code
-	db 0xff, 0xff, 0, 0, 0, 10010010b, 11001111b, 0		; data
+.empty:	dq 0
+.code:	dw 0xffff
+	dw 0
+	db 0
+	db 0b10011010
+	db 0b11001111
+	db 0
+.data:	dw 0xffff
+	dw 0
+	db 0
+	db 0b10010010
+	db 0b11001111
+	db 0
 .end:

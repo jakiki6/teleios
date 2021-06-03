@@ -1,5 +1,5 @@
 run: os.img
-	qemu-system-i386 -hda $< --enable-kvm -monitor telnet:127.0.0.1:1337,server,nowait
+	qemu-system-i386 -hda $< --enable-kvm -D log.txt -d cpu_reset,int
 
 os.img: loader.bin stage2.bin kernel.bin
 	qemu-img create $@ 64M
@@ -16,6 +16,6 @@ os.img: loader.bin stage2.bin kernel.bin
 	nasm -f bin -o $@ $<
 
 clean:
-	rm os.img *.bin 2> /dev/null || true
+	rm log.txt os.img *.o *.bin 2> /dev/null || true
 
 .PHONY: run clean
