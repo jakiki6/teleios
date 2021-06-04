@@ -134,47 +134,77 @@ stage2:
 
 	jmp .rd
 
-.done:	in al, 0x70		; disable NMI
-	and al, 0x7f
-	out 0x70, al
-
-	in al, 0x92		; enable A20 line
+.done:	in al, 0x92		; enable A20 line
 	or al, 0x02
 	out 0x92, al
 
+	xor edi, edi
+	push 0x3000
+	pop es
+	mov ecx, 0x1000
+	xor eax, eax
+	rep stosd
+
+
+	lea eax, dword [es:di + 0x1000]	; pml4
+	or eax, 0b11			; present+write
+	mov dword [es:di], eax
+
+	mov eax, 0b11			; address 0 + present+write
+	mov dword [es:di + 0x1000], eax
+
 	cli
+	mov al, 0xff			; disable all irqs
+	out 0xa1, al
+	out 0x21, al
 
-	lgdt [gdt_desc]
+	nop
+	nop
 
-	mov eax, cr0
-	or al, 1
-	mov cr0, eax
+	lidt [idt]
 
+	mov eax, 0b10100000		; set pae and pge bit
+	mov cr4, eax
+
+	mov edx, 0x30000		; point to pml4
+	mov cr3, edx
+
+	mov ecx, 0xc0000080		; read from efer
+	rdmsr
+
+	or eax, 0x00000100		; set lme bit
+	wrmsr
+
+	mov ebx, cr0			; activate long mode
+	or ebx, 0x80000001		; enable paging and protetion
+	mov cr0, ebx
+
+	lgdt [gdt.desc]			; load gdt
+
+	jmp 0x08:long_mode		; JUMP
+
+	align 8
+gdt:
+.null:	dq 0x0000000000000000		; unused
+.code:	dq 0x00209A0000000000		; 64 bit r-x
+.data:	dq 0x0000920000000000		; 64 bit rw-
+.desc:
+	dw gdt.desc - gdt - 1
+	dd gdt
+
+	bits 64
+long_mode:
 	mov ax, 0x10
 	mov ds, ax
-
-	jmp 0x08:.pmode
-
-	bits 32
-.pmode:	mov ax, 0x10
-	mov ds, ax
 	mov es, ax
-	mov ss, ax
 	mov fs, ax
 	mov gs, ax
+	mov ss, ax
 
-	xor eax, eax
-	xor ebx, ebx
-	xor ecx, ecx
-	xor edx, edx
-	xor esi, esi
-	xor edi, edi
-	xor ebp, ebp
-
-	mov esp, 0x20000
-
-	push 2
-	popfd
+	mov edi, 0xb8000
+	mov rcx, 500
+	mov rax, 0x1f201f201f201f20
+	rep stosq
 
 	jmp 0x10000
 
@@ -275,21 +305,5 @@ errors:
 .found_reserved_block:
 	db "Found reserved block while reading chain", 0x0a, 0x0d, 0
 
-gdt_desc:
-	dw gdt_entries.end - gdt_entries - 1
-	dd gdt_entries
-gdt_entries:
-.empty:	dq 0
-.code:	dw 0xffff
-	dw 0
-	db 0
-	db 0b10011010
-	db 0b11001111
-	db 0
-.data:	dw 0xffff
-	dw 0
-	db 0
-	db 0b10010010
-	db 0b11001111
-	db 0
-.end:
+idt:	dw 0
+	dd 0
