@@ -1,7 +1,6 @@
-org 0x8000
+org 0xa000
 
-stage2:
-	mov eax, dword [0x7c00 + 12]	; total blocks
+stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	shl eax, 3			; times sizeof(uint64_t)
 	add eax, dword [0x7c00 + 28]	; plus block size
 	sub eax, 1			; minus 1
@@ -134,24 +133,15 @@ stage2:
 
 	jmp .rd
 
-.done:	in al, 0x92		; enable A20 line
+.done:	in al, 0x92			; enable A20 line
 	or al, 0x02
 	out 0x92, al
 
-	xor edi, edi
-	push 0x3000
-	pop es
-	mov ecx, 0x1000
-	xor eax, eax
-	rep stosd
 
-
-	lea eax, dword [es:di + 0x1000]	; pml4
-	or eax, 0b11			; present+write
-	mov dword [es:di], eax
-
-	mov eax, 0b11			; address 0 + present+write
-	mov dword [es:di + 0x1000], eax
+	mov dword [0x8000], 0x8003
+	mov dword [0x8004], 0
+	mov dword [0x8038], 0x7003
+	mov dword [0x803a], 0
 
 	cli
 	mov al, 0xff			; disable all irqs
@@ -166,7 +156,7 @@ stage2:
 	mov eax, 0b10100000		; set pae and pge bit
 	mov cr4, eax
 
-	mov edx, 0x30000		; point to pml4
+	mov edx, 0x8000			; point to pml4
 	mov cr3, edx
 
 	mov ecx, 0xc0000080		; read from efer
@@ -178,6 +168,9 @@ stage2:
 	mov ebx, cr0			; activate long mode
 	or ebx, 0x80000001		; enable paging and protetion
 	mov cr0, ebx
+
+	nop
+	nop
 
 	lgdt [gdt.desc]			; load gdt
 
@@ -285,7 +278,7 @@ DAP:
     dd 0        ; lba
 .end:
 
-buffer:	equ 0xa000
+buffer:	equ 0xf000
 
 kernel_name:
 	db "kernel.bin", 0

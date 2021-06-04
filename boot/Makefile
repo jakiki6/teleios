@@ -12,7 +12,7 @@ all: ../os.img
 	dd if=stage2.bin of=$@ conv=notrunc bs=1 seek=512
 
 %.bin: %.asm
-	nasm -f bin -o $@ $<
+	nasm -f bin -l $@.lst -o $@ $<
 
 clean:
 	rm *.o *.bin 2> /dev/null || true

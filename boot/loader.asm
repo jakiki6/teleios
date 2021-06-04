@@ -47,7 +47,7 @@ stage1:
 	pop ss
 	mov sp, 0xffff
 
-	jmp 0x8000
+	jmp 0xa000
 
 times 256 - ($ - $$) nop
 
@@ -61,7 +61,7 @@ DAP:
 .count:  
     dw 0x000f   ; number of sectors
 .offset_offset:
-    dw 0x8000	; offset
+    dw 0xa000	; offset
 .offset_segment:
     dw 0x0000   ; offset
 .lba_lower:
