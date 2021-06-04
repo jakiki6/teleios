@@ -133,15 +133,34 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 
 	jmp .rd
 
-.done:	in al, 0x92			; enable A20 line
+.done:	push 0x3000
+	pop ds
+
+	in al, 0x92			; enable A20 line
 	or al, 0x02
 	out 0x92, al
 
+	mov eax, p3_table		; map p3 to p4
+	or eax, 0b11			; present+writable
+	mov dword [p4_table], eax
 
-	mov dword [0x8000], 0x8003
-	mov dword [0x8004], 0
-	mov dword [0x8038], 0x7003
-	mov dword [0x803a], 0
+	mov eax, p2_table		; map p2 to p3
+	or eax, 0b11			; present+writable
+	mov dword [p3_table], eax
+
+	xor ecx, ecx
+.map_p2_table:
+	mov eax, 0x200000		; 2MiB
+	mul ecx				; ecx-th page
+	or eax, 0b10000011		; present+writable+huge
+	mov [p2_table + ecx * 8], eax	; map ecx-th entry
+
+	inc ecx
+	cmp ecx, 512
+	jne .map_p2_table
+
+	push cs
+	pop ds
 
 	cli
 	mov al, 0xff			; disable all irqs
@@ -156,7 +175,7 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov eax, 0b10100000		; set pae and pge bit
 	mov cr4, eax
 
-	mov edx, 0x8000			; point to pml4
+	mov edx, 0x30000		; point to pml4
 	mov cr3, edx
 
 	mov ecx, 0xc0000080		; read from efer
@@ -300,3 +319,10 @@ errors:
 
 idt:	dw 0
 	dd 0
+
+p4_table: \
+	equ 0x0000
+p3_table: \
+	equ 0x1000
+p2_table: \
+	equ 0x2000
