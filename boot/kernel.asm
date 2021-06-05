@@ -1,8 +1,20 @@
 	org 0x10000
-	bits 32
+	bits 64
 
-kmain:
+%define FRAMEBUFFER 0xb8000
+
+kmain:	mov rsi, strings.welcome
+	mov rdi, FRAMEBUFFER
+	mov rcx, qword [strings.welcome.len]
+
+	rep movsb
 
 halt:	cli
 	hlt
 	jmp halt
+
+strings:
+.welcome:
+	db 0x54, 0x1f, 0x65, 0x1f, 0x6c, 0x1f, 0x65, 0x1f, 0x69, 0x1f, 0x4f, 0x1f, 0x53, 0x1f
+.welcome.len:
+	dq 14

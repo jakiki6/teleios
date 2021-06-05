@@ -1,5 +1,7 @@
 org 0xa000
 
+%define PAGING_BUFFER 0x4000
+
 stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	shl eax, 3			; times sizeof(uint64_t)
 	add eax, dword [0x7c00 + 28]	; plus block size
@@ -133,34 +135,40 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 
 	jmp .rd
 
-.done:	push 0x3000
-	pop ds
-
-	in al, 0x92			; enable A20 line
+.done:	in al, 0x92			; enable A20 line
 	or al, 0x02
 	out 0x92, al
 
-	mov eax, p3_table		; map p3 to p4
-	or eax, 0b11			; present+writable
-	mov dword [p4_table], eax
+	mov di, PAGING_BUFFER
 
-	mov eax, p2_table		; map p2 to p3
-	or eax, 0b11			; present+writable
-	mov dword [p3_table], eax
+	push di
+	mov ecx, 0x1000
+	xor eax, eax
+	cld
+	rep stosd
+	pop di
 
-	xor ecx, ecx
-.map_p2_table:
-	mov eax, 0x200000		; 2MiB
-	mul ecx				; ecx-th page
-	or eax, 0b10000011		; present+writable+huge
-	mov [p2_table + ecx * 8], eax	; map ecx-th entry
+	lea eax, [es:di + 0x1000]
+	or eax, 0b11
+	mov dword [es:di], eax
 
-	inc ecx
-	cmp ecx, 512
-	jne .map_p2_table
+	lea eax, [es:di + 0x2000]
+	or eax, 0b11
+	mov dword [es:di + 0x1000], eax
 
-	push cs
-	pop ds
+	push di
+
+	lea di, [di + 0x2000]
+	mov eax, 0b10000011
+
+.loop_pt:
+	mov [es:di], eax
+	add eax, 0x1000
+	add di, 8
+	cmp eax, 0x200000
+	jb .loop_pt
+
+	pop di
 
 	cli
 	mov al, 0xff			; disable all irqs
@@ -175,7 +183,7 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov eax, 0b10100000		; set pae and pge bit
 	mov cr4, eax
 
-	mov edx, 0x30000		; point to pml4
+	mov edx, PAGING_BUFFER			; point to pml4
 	mov cr3, edx
 
 	mov ecx, 0xc0000080		; read from efer
@@ -213,10 +221,12 @@ long_mode:
 	mov gs, ax
 	mov ss, ax
 
-	mov edi, 0xb8000
+	mov rdi, 0xb8000
+	push rdi
 	mov rcx, 500
 	mov rax, 0x1f201f201f201f20
 	rep stosq
+	pop rdi
 
 	jmp 0x10000
 
@@ -319,10 +329,3 @@ errors:
 
 idt:	dw 0
 	dd 0
-
-p4_table: \
-	equ 0x0000
-p3_table: \
-	equ 0x1000
-p2_table: \
-	equ 0x2000

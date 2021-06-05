@@ -43,10 +43,6 @@ stage1:
 	xor di, di
 	xor bp, bp
 
-	push 0x2000
-	pop ss
-	mov sp, 0xffff
-
 	jmp 0xa000
 
 times 256 - ($ - $$) nop
