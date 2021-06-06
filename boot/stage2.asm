@@ -135,7 +135,56 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 
 	jmp .rd
 
-.done:	in al, 0x92			; enable A20 line
+.done:	push 0x4000
+	pop es
+	xor di, di
+
+	call do_e820
+	mov bp, errors.e820
+	jc error
+
+	push 0x3000
+	pop ds
+	xor si, si
+	xor di, di
+
+	mov cx, word [do_e820]
+.e820_loop:
+	cmp byte [es:si+16], 1
+	jne .no_ent
+
+	cmp byte[es:si+20], 0
+	jne .no_ent
+
+	mov eax, dword [es:si]
+	mov ebx, dword [es:si+4]
+	mov dword [ds:di], eax
+	mov dword [ds:di+4], ebx
+
+	mov eax, dword [es:si+8] 
+        mov ebx, dword [es:si+12]
+        mov dword [ds:di+8], eax
+        mov dword [ds:di+12], ebx
+
+	mov eax, ecx
+	mov dl, 24
+	mul dl
+	mov dword [ds:di+16], eax
+	xor eax, eax
+	mov dword [ds:di+20], eax
+
+.no_ent:
+	add si, 24
+	add di, 24
+
+	loop .e820_loop
+
+	push cs
+	pop ds
+	push cs
+	pop es
+
+	in al, 0x92			; enable A20 line
 	or al, 0x02
 	out 0x92, al
 
@@ -183,7 +232,7 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov eax, 0b10100000		; set pae and pge bit
 	mov cr4, eax
 
-	mov edx, PAGING_BUFFER			; point to pml4
+	mov edx, PAGING_BUFFER		; point to pml4
 	mov cr3, edx
 
 	mov ecx, 0xc0000080		; read from efer
@@ -193,7 +242,7 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	wrmsr
 
 	mov ebx, cr0			; activate long mode
-	or ebx, 0x80000001		; enable paging and protetion
+	or ebx, 0x80000001		; enable paging and protection
 	mov cr0, ebx
 
 	nop
@@ -290,6 +339,53 @@ print_eax:
 .table:	db "0123456789abcdef"
 .tmp:	dd 0
 
+do_e820:
+        mov di, 0x8004          ; Set di to 0x8004. Otherwise this code will get stuck in int 0x15 after some entries are fetched 
+	xor ebx, ebx		; ebx must be 0 to start
+	xor bp, bp		; keep an entry count in bp
+	mov edx, 0x0534D4150	; Place "SMAP" into edx
+	mov eax, 0xe820
+	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entry
+	mov ecx, 24		; ask for 24 bytes
+	int 0x15
+	jc short .failed	; carry set on first call means "unsupported function"
+	mov edx, 0x0534D4150	; Some BIOSes apparently trash this register?
+	cmp eax, edx		; on success, eax must have been reset to "SMAP"
+	jne short .failed
+	test ebx, ebx		; ebx = 0 implies list is only 1 entry long (worthless)
+	je short .failed
+	jmp short .jmpin
+.e820lp:
+	mov eax, 0xe820		; eax, ecx get trashed on every int 0x15 call
+	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entry
+	mov ecx, 24		; ask for 24 bytes again
+	int 0x15
+	jc short .e820f		; carry set means "end of list already reached"
+	mov edx, 0x0534D4150	; repair potentially trashed register
+.jmpin:
+	jcxz .skipent		; skip any 0 length entries
+	cmp cl, 20		; got a 24 byte ACPI 3.X response?
+	jbe short .notext
+	test byte [es:di + 20], 1	; if so: is the "ignore this data" bit clear?
+	je short .skipent
+.notext:
+	mov ecx, [es:di + 8]	; get lower uint32_t of memory region length
+	or ecx, [es:di + 12]	; "or" it with upper uint32_t to test for zero
+	jz .skipent		; if length uint64_t is 0, skip entry
+	inc bp			; got a good entry: ++count, move to next storage spot
+	add di, 24
+.skipent:
+	test ebx, ebx		; if ebx resets to 0, list is complete
+	jne short .e820lp
+.e820f:
+	mov word [.count], bp	; store the entry count
+	clc			; there is "jc" on end of list to this point, so the carry must be cleared
+	ret
+.failed:
+	stc			; "function unsupported" error exit
+	ret
+.count:	dw 0
+
 DAP:
 .header:
     db 0x10     ; header
@@ -326,6 +422,8 @@ errors:
 	db "Error while reading a chain entry", 0x0a, 0x0d, 0
 .found_reserved_block:
 	db "Found reserved block while reading chain", 0x0a, 0x0d, 0
+.e820:
+	db "E820 not supported :(", 0x0a, 0x0d, 0
 
 idt:	dw 0
 	dd 0
