@@ -25,22 +25,22 @@
 %endmacro
 
 %macro popaq 0
-        pop rax
-        pop rbx
-        pop rcx
-        pop rdx
-        pop rsi
-        pop rdi
-        pop rbp
-        pop r8
-        pop r9
-        pop r10
-        pop r11
-        pop r12
-        pop r13
-        pop r14
-        pop r15
         popfq
+        pop r15
+        pop r14
+        pop r13
+        pop r12
+        pop r11
+        pop r10
+        pop r9
+        pop r8
+        pop rbp
+        pop rdi
+        pop rsi
+        pop rdx
+        pop rcx
+        pop rbx
+        pop rax
 %endmacro
 
 
@@ -100,7 +100,27 @@ print_char:
 	mov al, 0x1f
 	stosb
 
-.end:	mov qword [.index], rsi
+.end:	cmp rsi, FRAMEBUFFER + (VGA_H * VGA_W * 2)
+	jb .no_scroll
+
+	sub rsi, VGA_W * 2
+	push rsi
+
+	mov rsi, FRAMEBUFFER
+	mov rdi, FRAMEBUFFER - (VGA_W * 2)
+	mov rcx, VGA_H + 1
+.scroll:
+	push rcx
+
+	mov rcx, VGA_W * 2
+	rep movsb
+
+	pop rcx
+	loop .scroll
+
+	pop rsi
+.no_scroll:
+	mov qword [.index], rsi
 	popaq
 	ret
 
