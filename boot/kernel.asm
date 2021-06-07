@@ -43,6 +43,17 @@
         pop rax
 %endmacro
 
+%macro println 1
+	%strlen len %1
+	push rsi
+	mov rsi, $+18
+	call print_string
+	pop rsi
+	jmp short $+2+len+3
+	db %1, 0x0a, 0x0d, 0
+	%undef len
+%endmacro
+
 
 kmain:	mov dx, 0x03d4
 	mov al, 0x0a			; cursor shape register
@@ -52,8 +63,12 @@ kmain:	mov dx, 0x03d4
 	mov al, 0x20			; bit 5 -> disable cursor
 	out dx, al
 
-	mov rsi, strings.welcome
-	call print_string
+	println "TeleiOS is booting..."
+
+;	mov rsi, 0x40000
+;	mov rdi, 0xb8000 + (VGA_W * 2 * 3)
+;	mov rcx, (VGA_W * 2 * (VGA_H - 3))
+;	rep movsb
 
 halt:	cli
 	hlt
@@ -90,6 +105,7 @@ print_char:
 	sub rdi, FRAMEBUFFER		; get offset in framebuffer
 	xchg rdi, rax			; swap
 	mov rbx, VGA_W * 2
+	xor rdx, rdx
 	div rbx
 	mul rbx				; rax = rax // (VGA_W * 2) * (VGA_W * 2)
 	xchg rdi, rax			; swap back
@@ -105,6 +121,11 @@ print_char:
 
 	sub rdi, VGA_W * 2
 	push rdi
+
+	mov rdi, FRAMEBUFFER + (VGA_H * VGA_W * 2)
+	mov rcx, VGA_W * 2
+	mov ax, 0x1f20
+	rep stosw
 
 	mov rsi, FRAMEBUFFER
 	mov rdi, FRAMEBUFFER - (VGA_W * 2)
@@ -125,10 +146,6 @@ print_char:
 	ret
 
 .index:	dq FRAMEBUFFER
-
-strings:
-.welcome:
-	db "TeleiOS", 0
 
 symbols:
 	; format:

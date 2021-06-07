@@ -143,42 +143,6 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov bp, errors.e820
 	jc error
 
-	push 0x3000
-	pop ds
-	xor si, si
-	xor di, di
-
-	mov cx, word [do_e820]
-.e820_loop:
-	cmp byte [es:si+16], 1
-	jne .no_ent
-
-	cmp byte[es:si+20], 0
-	jne .no_ent
-
-	mov eax, dword [es:si]
-	mov ebx, dword [es:si+4]
-	mov dword [ds:di], eax
-	mov dword [ds:di+4], ebx
-
-	mov eax, dword [es:si+8] 
-        mov ebx, dword [es:si+12]
-        mov dword [ds:di+8], eax
-        mov dword [ds:di+12], ebx
-
-	mov eax, ecx
-	mov dl, 24
-	mul dl
-	mov dword [ds:di+16], eax
-	xor eax, eax
-	mov dword [ds:di+20], eax
-
-.no_ent:
-	add si, 24
-	add di, 24
-
-	loop .e820_loop
-
 	push cs
 	pop ds
 	push cs
