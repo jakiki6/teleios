@@ -76,35 +76,35 @@ print_char:
 	; al -> char
 	pushaq
 
-	mov rsi, qword [.index]
+	mov rdi, qword [.index]
 
 	cmp al, 0x0a
 	jne .no_nl
 
-	add rsi, VGA_W * 2		; one full line * entry size
+	add rdi, VGA_W * 2		; one full line * entry size
 
 	jmp .end
 .no_nl:	cmp al, 0x0d
 	jne .no_cr
 
-	sub rsi, FRAMEBUFFER		; get offset in framebuffer
-	xchg rsi, rax			; swap
+	sub rdi, FRAMEBUFFER		; get offset in framebuffer
+	xchg rdi, rax			; swap
 	mov rbx, VGA_W * 2
 	div rbx
 	mul rbx				; rax = rax // (VGA_W * 2) * (VGA_W * 2)
-	xchg rsi, rax			; swap back
-	add rsi, FRAMEBUFFER		; add to address
+	xchg rdi, rax			; swap back
+	add rdi, FRAMEBUFFER		; add to address
 
 	jmp .end
 .no_cr:	stosb
 	mov al, 0x1f
 	stosb
 
-.end:	cmp rsi, FRAMEBUFFER + (VGA_H * VGA_W * 2)
+.end:	cmp rdi, FRAMEBUFFER + (VGA_H * VGA_W * 2)
 	jb .no_scroll
 
-	sub rsi, VGA_W * 2
-	push rsi
+	sub rdi, VGA_W * 2
+	push rdi
 
 	mov rsi, FRAMEBUFFER
 	mov rdi, FRAMEBUFFER - (VGA_W * 2)
@@ -118,9 +118,9 @@ print_char:
 	pop rcx
 	loop .scroll
 
-	pop rsi
+	pop rdi
 .no_scroll:
-	mov qword [.index], rsi
+	mov qword [.index], rdi
 	popaq
 	ret
 
