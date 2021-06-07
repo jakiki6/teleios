@@ -1,4 +1,4 @@
-%macro pushaq 0
+%macro prologue 0
 	push rax
 	push rbx
 	push rcx
@@ -14,11 +14,12 @@
 	push r13
 	push r14
 	push r15
-	pushfq
+
+	mov rbp, rsp
+	add rbp, 16 * 8
 %endmacro
 
-%macro popaq 0
-        popfq
+%macro epilogue 1
         pop r15
         pop r14
         pop r13
@@ -34,12 +35,14 @@
         pop rcx
         pop rbx
         pop rax
+	ret %1
 %endmacro
 
 %macro println 1
 	%strlen len %1
 	push rsi
-	mov rsi, $+18
+	mov rsi, $+19
+	push rsi
 	call print_string
 	pop rsi
 	jmp short $+2+len+3
@@ -50,7 +53,8 @@
 %macro print 1
         %strlen len %1
         push rsi
-        mov rsi, $+18
+        mov rsi, $+19
+	push rsi
         call print_string
         pop rsi
         jmp short $+2+len+1

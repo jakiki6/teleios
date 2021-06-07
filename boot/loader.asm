@@ -6,6 +6,7 @@ jmp stage1
 times 58 db 0x69
 
 stage1:
+	cli
 	xor ax, ax
 	xor bx, bx
 	xor cx, cx

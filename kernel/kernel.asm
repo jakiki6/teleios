@@ -4,6 +4,7 @@
 %define FRAMEBUFFER 0xb8000
 %define VGA_H 25
 %define VGA_W 80
+%define VGA_COLOR 0x1f
 
 %include "macros.asm"
 
@@ -22,26 +23,30 @@ kmain:	mov dx, 0x03d4
 ;	mov rcx, (VGA_W * 2 * (VGA_H - 3))
 ;	rep movsb
 
-halt:	cli
+halt:	println "Hanging!"
+.hlt	cli
 	hlt
-	jmp halt
+	jmp .hlt
 
 print_string:
-	; rsi -> null terminated string
-	pushaq
+	; 8 bytes: pointer to null terminated string
+	prologue
+	mov rsi, qword [rbp]
+
 .loop:	lodsb
 	cmp al, 0
 	je .end
 
+	push rbx
 	call print_char
 	jmp .loop
 
-.end:	popaq
-	ret
+.end:	epilogue 8
 
 print_char:
-	; al -> char
-	pushaq
+	; 8 byte: char
+	prologue
+	mov rax, qword [rbp]
 
 	mov rdi, qword [.index]
 
@@ -65,7 +70,7 @@ print_char:
 
 	jmp .end
 .no_cr:	stosb
-	mov al, 0x1f
+	mov al, VGA_COLOR
 	stosb
 
 .end:	cmp rdi, FRAMEBUFFER + (VGA_H * VGA_W * 2)
@@ -76,7 +81,7 @@ print_char:
 
 	mov rdi, FRAMEBUFFER + (VGA_H * VGA_W * 2)
 	mov rcx, VGA_W * 2
-	mov ax, 0x1f20
+	mov ax, 0x20 | (VGA_COLOR << 8)
 	rep stosw
 
 	mov rsi, FRAMEBUFFER
@@ -94,8 +99,7 @@ print_char:
 	pop rdi
 .no_scroll:
 	mov qword [.index], rdi
-	popaq
-	ret
+	epilogue 8
 
 .index:	dq FRAMEBUFFER
 

@@ -4,7 +4,7 @@ all: kernel.bin
 	done
 
 %.bin: %.asm
-	nasm -f bin -o $@ $<
+	nasm -f bin -l $@.lst -o $@ $<
 
 clean:
 	rm *.bin 2> /dev/null || true
