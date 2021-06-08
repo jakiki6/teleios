@@ -37,7 +37,7 @@ print_string:
 	cmp al, 0
 	je .end
 
-	push rbx
+	push rax
 	call print_char
 	jmp .loop
 
