@@ -12,8 +12,8 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov dword [directory_start], eax
 
 	mov dword [DAP.lba_lower], eax	; read first sector of directory
-        mov word [DAP.offset_segment], 0
-        mov word [DAP.offset_offset], buffer
+	mov word [DAP.offset_segment], 0
+	mov word [DAP.offset_offset], buffer
 
 	push ax
 	mov ah, 0x42
@@ -40,13 +40,13 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 
 .skip:	push ax
 	mov ah, 0x42
-        mov dl, byte [0x7d00]
-        mov si, DAP
+	mov dl, byte [0x7d00]
+	mov si, DAP
 
 	clc
-        int 0x13
+	int 0x13
 	pop ax
-        jc error
+	jc error
 
 .proc:	cmp dword [bx+buffer], 0	; end of directory?
 	je error
@@ -56,7 +56,7 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 
 					; deleted entry?
 	cmp dword [bx+buffer], 0xfffffffe
-        je .next
+	je .next
 
 	cmp byte [bx+buffer+8], 0	; file?
 	jne .next
@@ -70,13 +70,13 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov cx, 0			; pointer to other buffer
 
 .rd:	mov dword [DAP.lba_lower], eax
-        mov word [DAP.offset_segment], 0x1000
-        mov word [DAP.offset_offset], cx
+	mov word [DAP.offset_segment], 0x1000
+	mov word [DAP.offset_offset], cx
 
 	push ax
-        mov ah, 0x42
-        mov dl, byte [0x7d00]
-        mov si, DAP
+	mov ah, 0x42
+	mov dl, byte [0x7d00]
+	mov si, DAP
 
 	mov bp, errors.read_block
 	clc
@@ -95,15 +95,15 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov word [DAP.offset_offset], buffer
 	
 	push ax
-        mov ah, 0x42
-        mov dl, byte [0x7d00]
-        mov si, DAP
+	mov ah, 0x42
+	mov dl, byte [0x7d00]
+	mov si, DAP
 
 	mov bp, errors.read_chain
 	clc
-        int 0x13
+	int 0x13
 	pop ax
-        jc error
+	jc error
 
 	and ebx, 63			; mask to index in sector
 	shl ebx, 3			; times size of qword
@@ -128,10 +128,10 @@ stage2:	mov eax, dword [0x7c00 + 12]	; total blocks
 	mov si, DAP
 
 	mov bp, errors.read_chain
-        clc
-        int 0x13
+	clc
+	int 0x13
 	pop ax
-        jc error
+	jc error
 
 	jmp .rd
 
@@ -304,7 +304,7 @@ print_eax:
 .tmp:	dd 0
 
 do_e820:
-        mov di, 0x8004          ; Set di to 0x8004. Otherwise this code will get stuck in int 0x15 after some entries are fetched 
+	mov di, 0x8004          ; Set di to 0x8004. Otherwise this code will get stuck in int 0x15 after some entries are fetched 
 	xor ebx, ebx		; ebx must be 0 to start
 	xor bp, bp		; keep an entry count in bp
 	mov edx, 0x0534D4150	; Place "SMAP" into edx
@@ -362,9 +362,9 @@ DAP:
 .offset_segment:  
     dw 0x0000   ; offset
 .lba_lower:
-    dd 0        ; lba
+    dd 0	; lba
 .lba_upper:
-    dd 0        ; lba
+    dd 0	; lba
 .end:
 
 buffer:	equ 0xf000

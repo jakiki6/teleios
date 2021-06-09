@@ -62,9 +62,9 @@ DAP:
 .offset_segment:
     dw 0x0000   ; offset
 .lba_lower:
-    dq 1        ; lba
+    dq 1	; lba
 .lba_upper:
-    dq 0        ; lba
+    dq 0	; lba
 .end:
 
 times 510 - ($ - $$) nop

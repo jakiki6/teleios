@@ -37,7 +37,7 @@ symbols:
 	; format:
 	;   name: 240 bytes (null terminated)
 	;   address: 8 bytes
-        ;   next: 8 bytes (0 -> no next)
+	;   next: 8 bytes (0 -> no next)
 .halt:	db "KernelHalt"			; name
 	times 239 - ($ - .halt) db 0	; filler
 	db 0				; null terminator
@@ -46,10 +46,10 @@ symbols:
 .print_string:
 	db "VGAPrintString"		; name
 					; filler
-        times 239 - ($ - .print_string) db 0
-        db 0				; null terminator
-        dq print_string			; address
-        dq 0				; next
+	times 239 - ($ - .print_string) db 0
+	db 0				; null terminator
+	dq print_string			; address
+	dq 0				; next
 
 free_list: \
 	equ 0x30000
