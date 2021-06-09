@@ -19,5 +19,6 @@ exception_div_by_zero:
 %define INT_GATE 0b10001110
 
 idt:	idt_entry exception_div_by_zero, INT_GATE	; we wanna skip it
+	align 8
 .desc:	dw $ - idt
 	dd idt

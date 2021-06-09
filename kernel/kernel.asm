@@ -18,6 +18,9 @@ kmain:	mov dx, 0x03d4
 ;	mov rcx, (VGA_W * 2 * (VGA_H - 3))
 ;	rep movsb
 
+	println "Setting up MM"
+	call setup_mm
+
 	println "Registering interrupts"
 	call setup_interrupts
 
@@ -28,6 +31,7 @@ halt:	println "Hanging!"
 
 %include "vga.asm"
 %include "interrupts.asm"
+%include "mm.asm"
 
 symbols:
 	; format:
@@ -38,7 +42,14 @@ symbols:
 	times 239 - ($ - .halt) db 0	; filler
 	db 0				; null terminator
 	dq halt				; address
-	dq 0				; next
+	dq .print_string		; next
+.print_string:
+	db "VGAPrintString"		; name
+					; filler
+        times 239 - ($ - .print_string) db 0
+        db 0				; null terminator
+        dq print_string			; address
+        dq 0				; next
 
 free_list: \
 	equ 0x30000

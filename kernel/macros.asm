@@ -13,14 +13,12 @@
 	push r12
 	push r13
 	push r14
-	push r15
 
 	mov rbp, rsp
-	add rbp, 16 * 8
+	add rbp, 15 * 8
 %endmacro
 
 %macro epilogue 1
-        pop r15
         pop r14
         pop r13
         pop r12
